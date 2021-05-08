@@ -37,13 +37,13 @@ def seturl():
 @app.route('/unsetvurl', methods=['POST'])
 def unseturl():
 	global v_url
-	v_url = None
+	v_url = ""
 	print("url unset")
 	return "True"
 
 @app.route('/getvurl', methods=['GET', 'POST'])
 def getvurl():
-	return v_url
+	return v_url if v_url else ""
 
 @app.route('/isready', methods=['GET', 'POST'])
 def ready():
@@ -84,10 +84,19 @@ def getObjects():
 
 if __name__=='__main__':
 	from pyngrok import ngrok
-	myurl = ngrok.connect(8000)
-	
-	post(negotiator_url+"/seturl", data={"url":myurl.public_url})
-	
-	app.run(port=8000)
+	try : 
+		myurl = ngrok.connect(8000)
+
+		print(myurl.public_url)
+		
+		post(negotiator_url+"/seturl", data={"url":myurl.public_url})
+		
+		app.run(port=8000)
+	except Exception as e:
+		print(e)
+
+	finally:
+		if myurl:
+			post(negotiator_url+"/unseturl")
 
 	
