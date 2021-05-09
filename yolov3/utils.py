@@ -1,13 +1,3 @@
-#================================================================
-#
-#   File name   : utils.py
-#   Author      : PyLessons
-#   Created date: 2020-09-27
-#   Website     : https://pylessons.com/
-#   GitHub      : https://github.com/pythonlessons/TensorFlow-2.x-YOLOv3
-#   Description : additional yolov3 and yolov4 functions
-#
-#================================================================
 from multiprocessing import Process, Queue, Pipe
 import cv2
 import time
@@ -18,6 +8,9 @@ import tensorflow as tf
 from yolov3.configs import *
 from yolov3.yolov4 import *
 from tensorflow.python.saved_model import tag_constants
+
+# custom
+from time import sleep
 
 def load_yolo_weights(model, weights_file):
     tf.keras.backend.clear_session() # used to reset layer names
@@ -574,3 +567,50 @@ def detect_realtime( Yolo, output_path, video_path=0, input_size=416, show=False
                 break
 
     cv2.destroyAllWindows()
+
+
+#detect realtime Custom
+def detect_custom( Yolo, output_path, video_path=0, input_size=416, show=False, CLASSES=YOLO_COCO_CLASSES, score_threshold=0.3, iou_threshold=0.45, rectangle_colors=''):
+    vid = cv2.VideoCapture(video_path)
+    for i in range(9):
+        vid.read()
+    
+    _, frame = vid.read()
+
+    try:
+        original_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        original_frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2RGB)
+    except:
+        pass
+    image_data = image_preprocess(np.copy(original_frame), [input_size, input_size])
+    image_data = image_data[np.newaxis, ...].astype(np.float32)
+
+    if YOLO_FRAMEWORK == "tf":
+        pred_bbox = Yolo.predict(image_data)
+    elif YOLO_FRAMEWORK == "trt":
+        batched_input = tf.constant(image_data)
+        result = Yolo(batched_input)
+        pred_bbox = []
+        for key, value in result.items():
+            value = value.numpy()
+            pred_bbox.append(value)
+    
+    pred_bbox = [tf.reshape(x, (-1, tf.shape(x)[-1])) for x in pred_bbox]
+    pred_bbox = tf.concat(pred_bbox, axis=0)
+
+    bboxes = postprocess_boxes(pred_bbox, original_frame, input_size, score_threshold)
+    bboxes = nms(bboxes, iou_threshold, method='nms')
+
+    frame = draw_bbox(original_frame, bboxes, CLASSES=CLASSES, rectangle_colors=rectangle_colors)
+    
+    if show:
+        cv2.imshow('output', frame)
+        if cv2.waitKey(25) & 0xFF == ord("q"):
+            cv2.destroyAllWindows()
+            pass
+
+    cv2.destroyAllWindows()
+
+    c_names = read_class_names(CLASSES)
+
+    return [c_names[b[5]] for b in bboxes]
