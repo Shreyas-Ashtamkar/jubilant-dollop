@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "/home/ashtamkar/.local/share/virtualenvs/main-6BxqebQD/bin/python",
+    "python.pythonPath": "/home/shreyas/.local/share/virtualenvs/main-6BxqebQD/bin/python",
     "python.formatting.provider": "black"
 }

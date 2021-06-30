@@ -1,21 +1,23 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 # Web Server Requirements
 from flask import Flask, request, render_template
 from requests import post
-
-negotiator_url = "https://rpi-url-negotiator.herokuapp.com"
-
-v_url = None
-app = Flask(__name__)
 
 # Yolo Requirements
 from yolov3.utils import Load_Yolo_model, detect_custom
 from yolov3.configs import YOLO_INPUT_SIZE
 
+# Multiprocessing Requirements
+from json import dumps as toJSON, load as fromJSON
+
+negotiator_url = "https://rpi-url-negotiator.herokuapp.com"
+
 yolo = Load_Yolo_model()
 
-# Multiprocessing Requirements
-from multiprocessing import Process, Queue
-from json import dumps as toJSON, load as fromJSON
+v_url = None
+app = Flask(__name__)
 
 detected_objects = []
 
@@ -59,20 +61,14 @@ def getObjects():
 	detected_objects = ["demo1", "demo2", "demo3"]
 
 	if v_url:
-		detected_objects = []
-		for _ in range(2):
-			many_boxes = detect_custom(
-				video_path          = v_url        ,
-				Yolo                = yolo         ,
-				output_path         = ''           , 
-				show                = False        ,
-				score_threshold     = 0.4          ,
-				rectangle_colors    = (255,0,0)
-			)
-
-			for single_box in many_boxes:
-				if single_box not in detected_objects:
-					detected_objects.append(single_box)
+		detected_objects = detect_custom(
+			video_path          = v_url        ,
+			Yolo                = yolo         ,
+			output_path         = ''           , 
+			show                = False        ,
+			score_threshold     = 0.4          ,
+			rectangle_colors    = (255,0,0)
+		)	
 
 	if request.method=='GET':
 		detected_objects = render_template('output.html', vurl = str(v_url), data= detected_objects)
@@ -83,6 +79,7 @@ def getObjects():
 
 
 if __name__=='__main__':
+	myurl = None
 	from pyngrok import ngrok
 	try : 
 		myurl = ngrok.connect(8000)
